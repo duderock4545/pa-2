@@ -115,24 +115,35 @@ int privKeySign( uint8_t **sig , size_t *sigLen , EVP_PKEY  *privKey ,
     // Guard against incoming NULL pointers
     if (!sig || !sigLen || !privKey || !inData || inLen == 0)
         handleErors("myCrypto: Null pointer in privKeySign");
-
     // Create, Initialize, and Pad a context for RSA private-key signing
     EVP_PKEY_CTX *ctx;
     ctx = EVP_PKEY_CTX_new(privKey, NULL);
 
     if (!ctx)
+    {
+        EVP_PKEY_CTX_free( ctx ); 
         handleErrors("myCrypto: Couldn't create context");
+    }
     
     if ( !EVP_PKEY_sign_init(ctx) )
+    {
+        EVP_PKEY_CTX_free( ctx ); 
         handleErrors("myCrypto: Couldn't sign init ctx");
+    }
 
     if ( !EVP_PKEY_CTX_set_rsa_padding( ctx, RSA_PKCS1_OAEP_PADDING ) )
+    {
+        EVP_PKEY_CTX_free( ctx ); 
         handleErrors("myCrypto: Couldn't set rsa padding");
+    }
 
     // Determine how big the size of the signature could be
     size_t cipherLen; // Why do we need this what
     if ( !EVP_PKEY_sign(ctx, NULL, sigLen, inData, inLen) )
+    {
+        EVP_PKEY_CTX_free( ctx ); 
         handleErrors("myCrypto: Couldn't retrieve cipherLen");
+    }
 
     // size_t cipherLen = EVP_PKEY_size(privKey);
     // if ( !cipherLen )
@@ -142,13 +153,13 @@ int privKeySign( uint8_t **sig , size_t *sigLen , EVP_PKEY  *privKey ,
     uint8_t *sig = malloc(sigLen);
 
     if  ( !EVP_PKEY_sign(ctx, sig, sigLen, inData, inLen) )
+    {
+        EVP_PKEY_CTX_free( ctx );    
         handleErrors("myCrypto: Couldn't sign");
-    // Next allocate memory for the ciphertext
-
-    // Now, actually sign the inData using EVP_PKEY_sign( )
+    }
 
     // All is good
-    EVP_PKEY_CTX_free( ctx );     // remember to do this if any failure is encountered above
+    EVP_PKEY_CTX_free( ctx );
 
     return 1;
 }
@@ -176,7 +187,7 @@ int pubKeyVerify( uint8_t *sig , size_t sigLen , EVP_PKEY  *pubKey
     // EVP_PKEY_CTX_set_rsa_padding(  )
 
     // Verify the signature vs the incoming data using this context
-    int decision = EVP_PKEY_verify( /* .... */ ) ;
+    int decision = EVP_PKEY_verify;
 
     //  free any dynamically-allocated objects 
 
