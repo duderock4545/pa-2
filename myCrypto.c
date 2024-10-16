@@ -218,10 +218,16 @@ int pubKeyVerify( uint8_t *sig , size_t sigLen , EVP_PKEY  *pubKey
     // EVP_PKEY_CTX_set_rsa_padding(  )
 
     // Verify the signature vs the incoming data using this context
-    int decision = EVP_PKEY_verify;
+    int decision = EVP_PKEY_verify (ctx, sig, sigLen, data, dataLen);
+    if (decision < 0)
+    {
+        EVP_PKEY_CTX_free( ctx ); 
+        handleErrors("myCrypto pubKeyVerify: Couldn't verify public key");
+        return 0;
+    };
 
     //  free any dynamically-allocated objects 
-
+    EVP_PKEY_CTX_free( ctx ); 
     return decision ;
 
 }
