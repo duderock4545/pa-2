@@ -114,7 +114,7 @@ int privKeySign( uint8_t **sig , size_t *sigLen , EVP_PKEY  *privKey ,
 {
     // Guard against incoming NULL pointers
     if (!sig || !sigLen || !privKey || !inData || inLen == 0)
-        handleErors("myCrypto privKeyVerify: Null pointer in privKeySign");
+        handleErrors("myCrypto privKeyVerify: Null pointer in privKeySign");
 
     // Create, Initialize, and Pad a context for RSA private-key signing
     EVP_PKEY_CTX *ctx= EVP_PKEY_CTX_new(privKey, NULL);
@@ -134,11 +134,12 @@ int privKeySign( uint8_t **sig , size_t *sigLen , EVP_PKEY  *privKey ,
     }
 
     // Set padding
-    if ( !EVP_PKEY_CTX_set_rsa_padding( ctx, RSA_PKCS1_OAEP_PADDING ) )
+    if (!EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PADDING)) 
     {
-        EVP_PKEY_CTX_free( ctx ); 
-        handleErrors("myCrypto privKeyVerify: Couldn't set rsa padding");
+        EVP_PKEY_CTX_free(ctx);
+        handleErrors("myCrypto privKeySign: Couldn't set rsa padding");
         return 0;
+
     }
 
     // Determine how big the size of the signature could be
@@ -209,11 +210,11 @@ int pubKeyVerify( uint8_t *sig , size_t sigLen , EVP_PKEY  *pubKey
     }
 
 
-    if ( !EVP_PKEY_CTX_set_rsa_padding( ctx, RSA_PKCS1_OAEP_PADDING ) )
+    if (!EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PADDING)) 
     {
-        EVP_PKEY_CTX_free( ctx ); 
-        handleErrors("myCrypto pubKeyVerify: Couldn't set rsa padding");
-        return 0;
+    EVP_PKEY_CTX_free(ctx);
+    handleErrors("myCrypto pubKeyVerify: Couldn't set rsa padding");
+    return 0;
     }
     // EVP_PKEY_CTX_set_rsa_padding(  )
 
@@ -241,31 +242,45 @@ size_t fileDigest( int fd_in , int fd_out , uint8_t *digest )
 // If the file descriptor 'fd_out' is > 0, also write a copy of the incoming data stream file to 'fd_out'
 // Returns actual size in bytes of the computed digest
 {
-    EVP_MD_CTX *mdCtx ;
-    size_t nBytes ;
-    unsigned int  mdLen ;
+    // EVP_MD_CTX *mdCtx ;
+    // size_t nBytes ;
+    // unsigned int  mdLen ;
+    EVP_MD_CTX *mdCtx;
+    unsigned char buffer[8192]; // Buffer to read file chunks
+    ssize_t bytesRead;
+    unsigned int mdLen;
 
-	// Use EVP_MD_CTX_create() to create new hashing context    
-    // EVP_MD_CTX_new()
-    
-    // Initialize the context using EVP_DigestInit() so that it deploys 
-	// the HASH_ALGORITHM() hashing function 
-    // EVP_DigestInit(  )
+    // Create a new hashing context
+    mdCtx = EVP_MD_CTX_new();
+    if (!mdCtx)
+        handleErrors("fileDigest: Could not create hashing context");
 
-    while ( 1 )   // Loop until end-of input file
+    // Initialize the context to use the specified hash algorithm (e.g., SHA-256)
+    if (!EVP_DigestInit_ex(mdCtx, HASH_ALGORITHM(), NULL))
+        handleErrors("fileDigest: Digest initialization failed");
+
+    // Loop through the file in chunks
+    while ((bytesRead = read(fd_in, buffer, sizeof(buffer))) > 0)
     {
-        // Read a chund of input from fd_in. Exit the loop when End-of-File is reached
+        // Update the digest with the read data chunk
+        if (!EVP_DigestUpdate(mdCtx, buffer, bytesRead))
+            handleErrors("fileDigest: Digest update failed");
 
-        // VP_DigestUpdate( )
-        
-        // if ( fd_out > 0 ) send the above chunk of data to fd_out
-            
+        // Optionally, write the chunk to the output file descriptor if it's valid
+        if (fd_out > 0 && write(fd_out, buffer, bytesRead) != bytesRead)
+            handleErrors("fileDigest: Failed to write to output");
     }
 
-    // EVP_DigestFinal( )
-    
-    // EVP_MD_CTX_destroy( );
+    if (bytesRead < 0)
+        handleErrors("fileDigest: Read error");
 
-    return mdLen ;
+    // Finalize the digest and write it to the 'digest' array
+    if (!EVP_DigestFinal_ex(mdCtx, digest, &mdLen))
+        handleErrors("fileDigest: Digest finalization failed");
+
+    // Clean up the hashing context
+    EVP_MD_CTX_destroy(mdCtx);
+
+    return mdLen; // Return the size of the digest
 }
 
