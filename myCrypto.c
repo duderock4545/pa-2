@@ -4,8 +4,8 @@ My Cryptographic Library
 FILE:   myCrypto.c
 
 Written By:  Team #   MUST WRITE YOUR TEAM NUMBER HERE
-     1- MUST WRITE YOUR FULL NAME
-     2- MUST WRITE YOUR FULL NAME
+     1- Patrick Dodds
+     2- Conor McFadden
 
 Submitted on: 
 ----------------------------------------------------------------------------*/
@@ -109,71 +109,44 @@ unsigned decrypt(uint8_t *pCipherText, unsigned cipherText_len,
 // Returns: 
 //    1 on success, or 0 on ANY REASON OF FAILURE
 
-int privKeySign( uint8_t **sig , size_t *sigLen , EVP_PKEY  *privKey , 
-                 uint8_t *inData , size_t inLen ) 
-{
-    // Guard against incoming NULL pointers
-    if (!sig || !sigLen || !privKey || !inData || inLen == 0)
-        handleErrors("myCrypto privKeyVerify: Null pointer in privKeySign");
-
-    // Create, Initialize, and Pad a context for RSA private-key signing
-    EVP_PKEY_CTX *ctx= EVP_PKEY_CTX_new(privKey, NULL);
-    if (!ctx)
-    {
-        EVP_PKEY_CTX_free( ctx ); 
-        handleErrors("myCrypto privKeyVerify: Couldn't create context");
-        return 0;
-    }
-    
-    // Initilize the ctx
-    if ( !EVP_PKEY_sign_init(ctx) )
-    {
-        EVP_PKEY_CTX_free( ctx ); 
-        handleErrors("myCrypto privKeyVerify: Couldn't sign init ctx");
+int privKeySign(uint8_t **sig, size_t *sigLen, EVP_PKEY *privKey, uint8_t *inData, size_t inLen) {
+    if (!sig || !sigLen || !privKey || !inData || inLen == 0) {
+        handleErrors("privKeySign: Null pointer or zero-length input");
         return 0;
     }
 
-    // Set padding
-    if (!EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PADDING)) 
-    {
-        EVP_PKEY_CTX_free(ctx);
-        handleErrors("myCrypto privKeySign: Couldn't set rsa padding");
-        return 0;
+    EVP_MD_CTX *mdCtx = EVP_MD_CTX_new();
+    if (!mdCtx) handleErrors("privKeySign: Could not create context");
 
-    }
-
-    // Determine how big the size of the signature could be
-    size_t cipherLen; // Why do we need this what
-    if ( !EVP_PKEY_sign(ctx, NULL, sigLen, inData, inLen) )
-    {
-        EVP_PKEY_CTX_free( ctx ); 
-        handleErrors("myCrypto privKeyVerify: Couldn't retrieve cipherLen");
+    if (EVP_DigestSignInit(mdCtx, NULL, HASH_ALGORITHM(), NULL, privKey) != 1) {
+        EVP_MD_CTX_free(mdCtx);
+        handleErrors("privKeySign: DigestSignInit failed");
         return 0;
     }
 
-    // size_t cipherLen = EVP_PKEY_size(privKey);
-    // if ( !cipherLen )
-    //     handleErrors("myCrypto privKeyVerify: Couldn't retrieve cipherLen");
+    // Determine the required signature length
+    if (EVP_DigestSign(mdCtx, NULL, sigLen, inData, inLen) != 1) {
+        EVP_MD_CTX_free(mdCtx);
+        handleErrors("privKeySign: Failed to determine signature length");
+        return 0;
+    }
 
-    // Allocate memory for ciphertext
     *sig = (uint8_t *)malloc(*sigLen);
     if (*sig == NULL) {
-        EVP_PKEY_CTX_free(ctx);
-        handleErrors("myCrypto privKeyVerify: Memory allocation failed");
+        EVP_MD_CTX_free(mdCtx);
+        handleErrors("privKeySign: Memory allocation failed");
         return 0;
     }
 
-    // Sign the data
-    if  ( !EVP_PKEY_sign(ctx, *sig, sigLen, inData, inLen) )
-    {
+    // Generate the signature
+    if (EVP_DigestSign(mdCtx, *sig, sigLen, inData, inLen) != 1) {
+        EVP_MD_CTX_free(mdCtx);
         free(*sig);
-        EVP_PKEY_CTX_free( ctx );    
-        handleErrors("myCrypto privKeyVerify: Couldn't sign");
+        handleErrors("privKeySign: Failed to sign data");
         return 0;
     }
 
-    // All is good
-    EVP_PKEY_CTX_free( ctx );
+    EVP_MD_CTX_free(mdCtx);
     return 1;
 }
 
@@ -182,55 +155,30 @@ int privKeySign( uint8_t **sig , size_t *sigLen , EVP_PKEY  *privKey ,
 // matches the data in 'data'
 // Returns 1 if they match, 0 otherwise
 
-int pubKeyVerify( uint8_t *sig , size_t sigLen , EVP_PKEY  *pubKey 
-           , uint8_t *data , size_t dataLen ) 
-{
-    // Guard against incoming NULL pointers
-    if ( !sig ||  !pubKey  ||  !data  )
-    {
-        printf(  "\n******* pkeySign received some NULL pointers\n" ); 
-        return 0 ; 
-    }
-
-    // Create and Initialize a context for RSA public-key signature verification
-    EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(pubKey, NULL);
-    if (!ctx)
-    {
-        EVP_PKEY_CTX_free( ctx ); 
-        handleErrors("myCrypto pubKeyVerify: Couldn't create context");
+int pubKeyVerify(uint8_t *sig, size_t sigLen, EVP_PKEY *pubKey, uint8_t *data, size_t dataLen) {
+    if (!sig || !pubKey || !data) {
+        printf("\npubKeyVerify: Null pointers\n");
         return 0;
     }
 
-    // Verify pubkey ctx
-    if (EVP_PKEY_verify_init(ctx) < 1)
-    {
-        EVP_PKEY_CTX_free( ctx ); 
-        handleErrors("myCrypto pubKeyVerify: Couldn't verify context");
+    EVP_MD_CTX *mdCtx = EVP_MD_CTX_new();
+    if (!mdCtx) handleErrors("pubKeyVerify: Could not create context");
+
+    if (EVP_DigestVerifyInit(mdCtx, NULL, HASH_ALGORITHM(), NULL, pubKey) != 1) {
+        EVP_MD_CTX_free(mdCtx);
+        handleErrors("pubKeyVerify: DigestVerifyInit failed");
         return 0;
     }
 
+    int result = EVP_DigestVerify(mdCtx, sig, sigLen, data, dataLen);
+    EVP_MD_CTX_free(mdCtx);
 
-    if (!EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PADDING)) 
-    {
-    EVP_PKEY_CTX_free(ctx);
-    handleErrors("myCrypto pubKeyVerify: Couldn't set rsa padding");
-    return 0;
-    }
-    // EVP_PKEY_CTX_set_rsa_padding(  )
-
-    // Verify the signature vs the incoming data using this context
-    int decision = EVP_PKEY_verify (ctx, sig, sigLen, data, dataLen);
-    if (decision < 0)
-    {
-        EVP_PKEY_CTX_free( ctx ); 
-        handleErrors("myCrypto pubKeyVerify: Couldn't verify public key");
+    if (result != 1) {
+        handleErrors("pubKeyVerify: Verification failed");
         return 0;
-    };
+    }
 
-    //  free any dynamically-allocated objects 
-    EVP_PKEY_CTX_free( ctx ); 
-    return decision ;
-
+    return 1;
 }
 
 //-----------------------------------------------------------------------------
@@ -245,42 +193,36 @@ size_t fileDigest( int fd_in , int fd_out , uint8_t *digest )
     // EVP_MD_CTX *mdCtx ;
     // size_t nBytes ;
     // unsigned int  mdLen ;
-    EVP_MD_CTX *mdCtx;
-    unsigned char buffer[8192]; // Buffer to read file chunks
+    EVP_MD_CTX *mdCtx = EVP_MD_CTX_new();
+    if (!mdCtx) handleErrors("fileDigest: Could not create hashing context");
+
+    if (!EVP_DigestInit_ex(mdCtx, HASH_ALGORITHM(), NULL)) {
+        handleErrors("fileDigest: Digest initialization failed");
+    }
+
+    unsigned char buffer[8192];
     ssize_t bytesRead;
     unsigned int mdLen;
 
-    // Create a new hashing context
-    mdCtx = EVP_MD_CTX_new();
-    if (!mdCtx)
-        handleErrors("fileDigest: Could not create hashing context");
-
-    // Initialize the context to use the specified hash algorithm (e.g., SHA-256)
-    if (!EVP_DigestInit_ex(mdCtx, HASH_ALGORITHM(), NULL))
-        handleErrors("fileDigest: Digest initialization failed");
-
-    // Loop through the file in chunks
-    while ((bytesRead = read(fd_in, buffer, sizeof(buffer))) > 0)
-    {
-        // Update the digest with the read data chunk
-        if (!EVP_DigestUpdate(mdCtx, buffer, bytesRead))
+    while ((bytesRead = read(fd_in, buffer, sizeof(buffer))) > 0) {
+        if (!EVP_DigestUpdate(mdCtx, buffer, bytesRead)) {
             handleErrors("fileDigest: Digest update failed");
+        }
 
-        // Optionally, write the chunk to the output file descriptor if it's valid
-        if (fd_out > 0 && write(fd_out, buffer, bytesRead) != bytesRead)
+        if (fd_out > 0 && write(fd_out, buffer, bytesRead) != bytesRead) {
             handleErrors("fileDigest: Failed to write to output");
+        }
     }
 
-    if (bytesRead < 0)
+    if (bytesRead < 0) {
         handleErrors("fileDigest: Read error");
+    }
 
-    // Finalize the digest and write it to the 'digest' array
-    if (!EVP_DigestFinal_ex(mdCtx, digest, &mdLen))
+    if (!EVP_DigestFinal_ex(mdCtx, digest, &mdLen)) {
         handleErrors("fileDigest: Digest finalization failed");
+    }
 
-    // Clean up the hashing context
     EVP_MD_CTX_destroy(mdCtx);
-
-    return mdLen; // Return the size of the digest
+    return mdLen;
 }
 

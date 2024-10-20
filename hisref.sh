@@ -14,12 +14,9 @@ ln -s ../bunny.mp4 bunny.mp4
 echo "=============================="
 echo "Setting up executables"
 
-# Compile Custom Amal (your `amal.c`)
-gcc -o amal/amal amal/amal.c myCrypto.c -lcrypto -lssl
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to compile amal.c"
-    exit 1
-fi
+# Use the amalReference executable for Amal
+cp amal/amalReference amal/amal
+chmod +x amal/amal  # Ensure amal has execute permissions
 
 # Use the basimReference executable for Basim
 cp basim/basimReference basim/basim
