@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
     fprintf(log, "Amal: Received pipe FDs, Control Pipe: %d, Data Pipe: %d\n", fd_ctrl, fd_data);
 
     // Open bunny.mp4 file
-    fd_in = open("../bunny.mp4", O_RDONLY);
+    fd_in = open("bunny.mp4", O_RDONLY);
     if (fd_in < 0) {
         fprintf(log, "Error: Unable to open bunny.mp4\n");
         fclose(log);
