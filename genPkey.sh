@@ -37,24 +37,19 @@ cd ../basim
 rm -f *.pem
 cp ../amal/amal_pub_key.pem .
 
-# Go back to the main project folder
 cd ..
 
 # Compile Custom Amal (your `amal.c`)
 gcc -o amal/amal amal/amal.c myCrypto.c -lcrypto -lssl
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to compile amal.c"
-    exit 1
-fi
 
-# Copy the basimReference to run as Basim
+
+
 cp basim/basimReference basim/basim
 
-# Grant execute permissions for Amal and Basim
 chmod +x amal/amal basim/basim
 
-# Compile Dispatcher (optional if dispatcher.c needs to be recompiled)
-gcc -o dispatcher dispatcher.c wrappers.c -lcrypto -lssl
+# # Compile Dispatcher (optional if dispatcher.c needs to be recompiled)
+# gcc -o dispatcher dispatcher.c wrappers.c -lcrypto -lssl
 
-# Run the dispatcher (which will run Amal and Basim)
-./dispatcher
+# # Run the dispatcher (which will run Amal and Basim)
+# ./dispatcher

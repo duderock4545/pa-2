@@ -111,39 +111,38 @@ unsigned decrypt(uint8_t *pCipherText, unsigned cipherText_len,
 
 int privKeySign(uint8_t **sig, size_t *sigLen, EVP_PKEY *privKey, uint8_t *inData, size_t inLen) {
     if (!sig || !sigLen || !privKey || !inData || inLen == 0) {
-        handleErrors("privKeySign: Null pointer or zero-length input");
+        handleErrors("Null pointer or zero-length input");
         return 0;
     }
 
     EVP_MD_CTX *mdCtx = EVP_MD_CTX_new();
-    if (!mdCtx) handleErrors("privKeySign: Could not create context");
+    if (!mdCtx) handleErrors("Could not create context");
 
-    // Initialize the digest and set the padding to RSA_PKCS1_PADDING
     EVP_PKEY_CTX *ctx = NULL;
     if (EVP_DigestSignInit(mdCtx, &ctx, HASH_ALGORITHM(), NULL, privKey) != 1) {
         EVP_MD_CTX_free(mdCtx);
-        handleErrors("privKeySign: DigestSignInit failed");
+        handleErrors("DigestSignInit failed");
         return 0;
     }
 
-    // Set padding to RSA_PKCS1_PADDING
+    // Set padding
     if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PADDING) != 1) {
         EVP_MD_CTX_free(mdCtx);
         handleErrors("privKeySign: Failed to set RSA padding");
         return 0;
     }
 
-    // Determine the required signature length
+    // signature length 
     if (EVP_DigestSign(mdCtx, NULL, sigLen, inData, inLen) != 1) {
         EVP_MD_CTX_free(mdCtx);
-        handleErrors("privKeySign: Failed to determine signature length");
+        handleErrors("Failed to determine signature length");
         return 0;
     }
 
     *sig = (uint8_t *)malloc(*sigLen);
     if (*sig == NULL) {
         EVP_MD_CTX_free(mdCtx);
-        handleErrors("privKeySign: Memory allocation failed");
+        handleErrors("Memory allocation failed");
         return 0;
     }
 
@@ -151,7 +150,7 @@ int privKeySign(uint8_t **sig, size_t *sigLen, EVP_PKEY *privKey, uint8_t *inDat
     if (EVP_DigestSign(mdCtx, *sig, sigLen, inData, inLen) != 1) {
         EVP_MD_CTX_free(mdCtx);
         free(*sig);
-        handleErrors("privKeySign: Failed to sign data");
+        handleErrors("Failed to sign data");
         return 0;
     }
 
@@ -164,27 +163,28 @@ int privKeySign(uint8_t **sig, size_t *sigLen, EVP_PKEY *privKey, uint8_t *inDat
 // matches the data in 'data'
 // Returns 1 if they match, 0 otherwise
 
-int pubKeyVerify(uint8_t *sig, size_t sigLen, EVP_PKEY *pubKey, uint8_t *data, size_t dataLen) {
+int pubKeyVerify(uint8_t *sig, size_t sigLen, EVP_PKEY *pubKey, uint8_t *data, size_t dataLen)
+ {
     if (!sig || !pubKey || !data) {
-        printf("\npubKeyVerify: Null pointers\n");
+        printf("\n Null pointers\n");
         return 0;
     }
 
     EVP_MD_CTX *mdCtx = EVP_MD_CTX_new();
-    if (!mdCtx) handleErrors("pubKeyVerify: Could not create context");
+    if (!mdCtx) handleErrors("Could not create context");
 
-    // Initialize the digest and set the padding to RSA_PKCS1_PADDING
+    // Initialize 
     EVP_PKEY_CTX *ctx = NULL;
     if (EVP_DigestVerifyInit(mdCtx, &ctx, HASH_ALGORITHM(), NULL, pubKey) != 1) {
         EVP_MD_CTX_free(mdCtx);
-        handleErrors("pubKeyVerify: DigestVerifyInit failed");
+        handleErrors("DigestVerifyInit failed");
         return 0;
     }
 
-    // Set padding to RSA_PKCS1_PADDING
+    // Set padding RSA_PKCS1_PADDING
     if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PADDING) != 1) {
         EVP_MD_CTX_free(mdCtx);
-        handleErrors("pubKeyVerify: Failed to set RSA padding");
+        handleErrors("Failed to set RSA padding");
         return 0;
     }
 
@@ -193,7 +193,7 @@ int pubKeyVerify(uint8_t *sig, size_t sigLen, EVP_PKEY *pubKey, uint8_t *data, s
     EVP_MD_CTX_free(mdCtx);
 
     if (result != 1) {
-        handleErrors("pubKeyVerify: Verification failed");
+        handleErrors("Verification failed");
         return 0;
     }
 
