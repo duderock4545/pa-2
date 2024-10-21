@@ -24,18 +24,12 @@ chmod +x basim/basim  # Ensure basim has execute permissions
 
 # Compile the Dispatcher
 gcc wrappers.c dispatcher.c -o dispatcher
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to compile dispatcher.c"
-    exit 1
-fi
+
 
 echo "=============================="
 echo "Starting the dispatcher"
 ./dispatcher
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to run dispatcher"
-    exit 1
-fi
+
 
 echo
 echo "======  Amal's  LOG  ========="

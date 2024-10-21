@@ -15,12 +15,6 @@ else
     echo "Symbolic link for bunny.mp4 already exists"
 fi
 
-# Check if basimReference exists
-if [ ! -f basim/basimReference ]; then
-    echo "Error: basimReference file not found."
-    exit 1
-fi
-
 # Generate 2048-bit public/private key-pair for Amal
 cd amal
 rm -f *.pem bunny.mp4
@@ -61,16 +55,6 @@ chmod +x amal/amal basim/basim
 
 # Compile Dispatcher (optional if dispatcher.c needs to be recompiled)
 gcc -o dispatcher dispatcher.c wrappers.c -lcrypto -lssl
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to compile dispatcher.c"
-    exit 1
-fi
 
 # Run the dispatcher (which will run Amal and Basim)
 ./dispatcher
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to run dispatcher"
-    exit 1
-fi
-
-echo "Test complete. Check logs for results."

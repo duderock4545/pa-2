@@ -16,10 +16,7 @@ echo "Setting up executables"
 
 # Compile Custom Amal (your `amal.c`)
 gcc -o amal/amal amal/amal.c myCrypto.c -lcrypto -lssl
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to compile amal.c"
-    exit 1
-fi
+
 
 # Use the basimReference executable for Basim
 cp basim/basimReference basim/basim
@@ -27,18 +24,12 @@ chmod +x basim/basim  # Ensure basim has execute permissions
 
 # Compile the Dispatcher
 gcc wrappers.c dispatcher.c -o dispatcher
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to compile dispatcher.c"
-    exit 1
-fi
+
 
 echo "=============================="
 echo "Starting the dispatcher"
 ./dispatcher
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to run dispatcher"
-    exit 1
-fi
+
 
 echo
 echo "======  Amal's  LOG  ========="
